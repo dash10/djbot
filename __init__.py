@@ -29,8 +29,7 @@
 ###
 
 """
-Add a description of the plugin (to be presented to the user inside the wizard)
-here.  This should describe *what* the plugin does.
+Plays Pandora (via pianobar) and allows control through IRC
 """
 
 import supybot
@@ -41,14 +40,14 @@ import supybot.world as world
 __version__ = ""
 
 # XXX Replace this with an appropriate author or supybot.Author instance.
-__author__ = supybot.authors.unknown
+__author__ = dash
 
 # This is a dictionary mapping supybot.Author instances to lists of
 # contributions.
 __contributors__ = {}
 
 # This is a url where the most recent plugin package can be downloaded.
-__url__ = '' # 'http://supybot.com/Members/yourname/Pandora/download'
+__url__ = 'https://github.com/dash10/djbot' # 'http://supybot.com/Members/yourname/Pandora/download'
 
 from . import config
 from . import plugin
