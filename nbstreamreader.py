@@ -22,6 +22,7 @@ class NonBlockingStreamReader:
                                 if line:
                                         queue.put(line)
                                 else:
+					# ordinarily this should error
                                         pass # we don't care if it cuts off
 
                 self._t = Thread(target = _populateQueue,
