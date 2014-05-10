@@ -22,14 +22,13 @@ class NonBlockingStreamReader:
                                 if line:
                                         queue.put(line)
                                 else:
-					# ordinarily this should error
-                                        pass # we don't care if it cuts off
+					break
 
                 self._t = Thread(target = _populateQueue,
                         args = (self._s, self._q))
                 self._t.daemon = True
                 self._t.start() # start collecting lines from stream
-
+		
         def readline(self, timeout = None):
                 try:
                         return self._q.get(block = timeout is not None,
