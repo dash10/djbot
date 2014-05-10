@@ -36,6 +36,7 @@ import supybot.callbacks as callbacks
 
 from subprocess import Popen, PIPE
 from time import sleep
+import re
 
 # this is included in plugins/Pandora
 from nbstreamreader import NonBlockingStreamReader as NBSR
@@ -57,28 +58,10 @@ class Pandora(callbacks.Plugin):
         self.p.terminate()
 
     # gets the most recent line of output
-    def getOutput(self):
+    def getLast(self):
         temp = ''
         while True:
             output = temp
-            temp = self.nbsr.readline(0.1)
-            if not temp:
-                break
-        return output
-
-    # gets output from command
-    def respondTo(self, cmd):
-
-        # get to last line of output
-        self.getOutput()
-
-        self.p.stdin.write(cmd)
-        sleep(0.2)
-        # get response from command
-        temp = ''
-        output = ''
-        while True:
-            output += temp
             temp = self.nbsr.readline(0.1)
             if not temp:
                 break
@@ -90,64 +73,72 @@ class Pandora(callbacks.Plugin):
 
         loves currently playing song
         """
-        output = self.respondTo('+')
-        irc.reply(output)
+        self.p.stdin.write('+')
+        irc.reply('loving song...')
 
     def ban(self, irc, msg, args):
         """takes no arguments
 
         bans currently playing song
         """
-        irc.reply(self.respondTo('-'))
+        self.p.stdin.write('-')
+        irc.reply('banning song')
 
     def addmusic(self, irc, msg, args):
         """takes no arguments
 
         add music to station
         """
-        irc.reply(self.respondTo('a'))
+        self.p.stdin.write('a')
+        irc.reply('todo')
 
     def create(self, irc, msg, args):
         """takes no arguments
 
         create new station
         """
-        irc.reply(self.respondTo('c'))
+        self.p.stdin.write('c')
+        irc.reply('todo')
 
     def delete(self, irc, msg, args):
         """takes no arguments
 
         delete current station
         """
-        irc.reply(self.respondTo('d'))
+        self.p.stdin.write('d')
+        irc.reply('todo')
 
     def explain(self, irc, msg, args):
         """takes no arguments
 
         explain why current song is playing
         """
-        irc.reply(self.respondTo('e'))
+        self.p.stdin.write('e')
+        irc.reply('todo')
 
     def addgenre(self, irc, msg, args):
         """takes no arguments
 
         add genre station
         """
-        irc.reply(self.respondTo('g'))
+        self.p.stdin.write('g')
+        irc.reply('todo')
 
     def history(self, irc, msg, args):
         """takes no arguments
 
         return recently played songs
         """
-        irc.reply(self.respondTo('h'))
+        self.p.stdin.write('h')
+        irc.reply('todo')
 
     def info(self, irc, msg, args):
         """takes no arguments
 
         returns title, artist, album, and station
         """
-        irc.reply(self.respondTo('i'))
+        self.p.stdin.write('i')
+        irc.reply('todo')
 
     def skip(self, irc, msg, args):
         """takes no arguments
@@ -155,19 +146,19 @@ class Pandora(callbacks.Plugin):
         moves to next song
         """
         self.p.stdin.write('n')
-        irc.reply('skipped')
+        irc.reply('skipping...')
 
     def pause(self, irc, msg, args):
         """takes no arguments
 
         pause or unpause playback
         """
-        irc.reply(self.respondTo('p'))
+        self.p.stdin.write('p')
 
     def quit(self, irc, msg, args):
         """takes no arguments
 
-        causes pandora to exit
+        exit pianobar
         """
         irc.reply('You can\'t be serious')
 
@@ -176,42 +167,65 @@ class Pandora(callbacks.Plugin):
 
         rename station
         """
-        irc.reply(self.respondTo('r'))
+        self.p.stdin.write('r')
+        irc.reply('todo')
 
-    def station(self, irc, msg, args):
-        """takes no arguments
+    def station(self, irc, msg, args, cmd):
+        """<list> or <integer>
 
-        select station
+        list returns a list of available stations
+        integer selects corresponding station
         """
-        irc.reply(self.respondTo('s'))
+        if cmd == "list":
+            self.getLast()
+
+            self.p.stdin.write('s' + "\n")
+            sleep(0.1)
+            # get response from command
+            temp = ''
+            output = ''
+            while True:
+                output += temp.expandtabs(0) + ' '
+                temp = self.nbsr.readline(0.1)
+                if not temp:
+                    break
+            irc.reply(str(output))
+        elif (0 <= int(cmd) < 100):
+            self.p.stdin.write('s' + cmd + '\n')
+            irc.reply('selected ' + cmd)
+    station = wrap(station, ['text'])
 
     def tired(self, irc, msg, args):
         """takes no arguments
 
         do not play again for one month
         """
-        irc.reply(self.respondTo('t'))
+        self.p.stdin.write('t')
+        irc.reply('shelving...')
 
     def upcoming(self, irc, msg, args):
         """takes no arguments
 
         returns upcoming songs
         """
-        irc.reply(self.respondTo('u'))
+        self.p.stdin.write('u')
+        irc.reply('todo')
 
     def quickmix(self, irc, msg, args):
         """takes no arguments
 
         select quickmix station
         """
-        irc.reply(self.respondTo('x'))
+        self.p.stdin.write('x')
+        irc.reply('todo')
 
     def bookmark(self, irc, msg, args):
         """takes no arguments
 
         bookmark song
         """
-        irc.reply(self.respondTo('b'))
+        self.p.stdin.write('b')
+        irc.reply('bookmarked')
 
     def volup(self, irc, msg, args):
         """takes no arguments
@@ -232,14 +246,16 @@ class Pandora(callbacks.Plugin):
 
         remove seed from station
         """
-        irc.reply(self.respondTo('='))
+        self.p.stdin.write('=')
+        irc.reply(self.getLast())
 
     def newfromsong(self, irc, msg, args):
         """takes no arguments
 
         new station from song
         """
-        irc.reply(self.respondTo('v'))
+        self.p.stdin.write('v')
+        irc.reply(self.getLast())
 
     def select(self, irc, msg, args, cmd):
         """integer
@@ -247,7 +263,8 @@ class Pandora(callbacks.Plugin):
         use to select options from a list
         """
         if 0 <= cmd < 100:
-            irc.reply(self.respondTo(str(cmd)))
+            self.p.stdin.write(str(cmd))
+            irc.reply('selected option ' + str(cmd))
         else:
             irc.reply('value out of range')
     select = wrap(select, ['int'])
@@ -277,7 +294,7 @@ class Pandora(callbacks.Plugin):
 
         returns title, artist, and album
         """
-        irc.reply(getOutput)
+        irc.reply(self.getLast())
 
 
 
