@@ -56,6 +56,7 @@ class Pandora(callbacks.Plugin):
     # this prevents pianobar from running after unload
     def die(self):
         self.p.terminate()
+        nbsr.die()
 
     # gets the most recent line of output
     def getLast(self):
