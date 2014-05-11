@@ -184,8 +184,10 @@ class Pandora(callbacks.Plugin):
             # get response from command
             temp = ''
             output = ''
+            # there must be a better way to filter this
             while True:
-                output += temp.expandtabs(0) + ' '
+                output += temp.expandtabs(0).replace('\x1b[2K',
+'').replace('\n', '').replace(' q ', '').replace(' Q ', '') + ' '
                 temp = self.nbsr.readline(0.1)
                 if not temp:
                     break
