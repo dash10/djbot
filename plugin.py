@@ -84,6 +84,7 @@ class Pandora(callbacks.Plugin):
         """
         self.p.stdin.write('+')
         irc.reply('loving song...')
+    love = wrap(love)
 
     # input: -
     # expect: (i) Banning song... Ok.
@@ -94,6 +95,7 @@ class Pandora(callbacks.Plugin):
         """
         self.p.stdin.write('-')
         irc.reply('banning song')
+    ban = wrap(ban)
 
     # input: a
     # expect: [?] Add artist or title to station:
@@ -139,8 +141,8 @@ class Pandora(callbacks.Plugin):
 
         deletes current station
         """
-        self.p.stdin.write('d')
-        irc.reply('todo')
+        self.p.stdin.write('dy')
+        irc.reply('Station deleted')
 
     # input: e
     # expect: (i) Receiving explanation... Ok.
@@ -208,6 +210,7 @@ class Pandora(callbacks.Plugin):
         """
         self.p.stdin.write('n')
         irc.reply('skipping...')
+    skip = wrap(skip)
 
     # input: p
     # no response, music pauses / unpauses
@@ -217,28 +220,30 @@ class Pandora(callbacks.Plugin):
         pause or unpause playback
         """
         self.p.stdin.write('p')
+    pause = wrap(pause)
 
     # input: q
     # pianobar closes
-    # we don't want this to happen, unless the plugin is unloaded
+    # we don't want this to happen without unloading the plugin
     def quit(self, irc, msg, args):
         """takes no arguments
 
         exit pianobar
         """
-        irc.reply('You can\'t be serious')
+        irc.reply('Please unload the plugin instead')
 
     # input: r
     # expect: [?] New name:
     # input: <name>
     # expect: Renaming station... Ok.
-    def rename(self, irc, msg, args):
+    def rename(self, irc, msg, args, newname):
         """takes no arguments
 
         rename station
         """
-        self.p.stdin.write('r')
+        self.p.stdin.write('r' + newname)
         irc.reply('todo')
+    rename = wrap(rename, ['text'])
 
     # input: s
     # expect: 0) <station>
@@ -248,7 +253,6 @@ class Pandora(callbacks.Plugin):
     # [?] Select station:
     # input: <number>
     # expect: |> Station "<station>" (<station id>)
-    # Receiving new playlist... Ok.
     # selected station plays
     def station(self, irc, msg, args, cmd):
         """<list> or <integer>
@@ -267,7 +271,8 @@ class Pandora(callbacks.Plugin):
             # there must be a better way to filter this
             while True:
                 output += temp.expandtabs(0).replace('\x1b[2K',
-'').replace('\n', '').replace(' q ', '').replace(' Q ', '') + ' '
+                    '').replace('\n', '').replace(' q ', 
+                    '').replace(' Q ', '') + ' '
                 temp = self.nbsr.readline(0.1)
                 if not temp:
                     break
@@ -283,10 +288,11 @@ class Pandora(callbacks.Plugin):
     def tired(self, irc, msg, args):
         """takes no arguments
 
-        do not play again for one month
+        do not play this song again for one month
         """
         self.p.stdin.write('t')
         irc.reply('shelving...')
+    tired = wrap(tired)
 
     # input: u
     # expect: 0) <next song>
@@ -320,13 +326,18 @@ class Pandora(callbacks.Plugin):
     # expect: [?] Bookmark [s]ong or [a]rtist?
     # input: s
     # expect: (i) Bookmarking song... Ok.
-    def bookmark(self, irc, msg, args):
-        """takes no arguments
+    def bookmark(self, irc, msg, args, option):
+        """'artist' or 'song'
 
         bookmark song
         """
-        self.p.stdin.write('b')
-        irc.reply('bookmarked')
+        if option == 'artist':
+            cmd = 'a'
+        elif option == 'song':
+            cmd = 's'
+        self.p.stdin.write('b' + cmd)
+        irc.reply('Bookmarked ' + option)
+    bookmark = wrap(bookmark, ['text'])
 
     # input: )
     # no response, volume increases slightly (1/50?)
@@ -336,6 +347,7 @@ class Pandora(callbacks.Plugin):
         increase the volume
         """
         self.p.stdin.write(')')
+    volup = wrap(volup)
 
     # input: (
     # no response, volume decreases slightly (1/50?)
@@ -345,6 +357,7 @@ class Pandora(callbacks.Plugin):
         decrease the volume
         """
         self.p.stdin.write('(')
+    voldown = wrap(voldown)
 
     # input: =
     # expect: (i) Fetching station info... Ok.
@@ -361,7 +374,7 @@ class Pandora(callbacks.Plugin):
         remove seed from station
         """
         self.p.stdin.write('=')
-        irc.reply(self.getLast())
+        irc.reply('todo')
 
     # input: v
     # expect: [?] Create station from [s]ong or [a]rtist?
@@ -373,7 +386,7 @@ class Pandora(callbacks.Plugin):
         new station from song
         """
         self.p.stdin.write('v')
-        irc.reply(self.getLast())
+        irc.reply('todo')
     
     # parse info command and return only song title
     def title(self, irc, msg, args):
@@ -381,7 +394,7 @@ class Pandora(callbacks.Plugin):
 
         returns song title
         """
-        irc.reply('not yet implemented')
+        irc.reply('todo')
 
     # parse info command and return only artist name
     def artist(self, irc, msg, args):
@@ -389,7 +402,7 @@ class Pandora(callbacks.Plugin):
 
         returns song artist
         """
-        irc.reply('not yet implemented')
+        irc.reply('todo')
 
     # parse info command and return only album name
     def album(self, irc, msg, args):
@@ -397,7 +410,7 @@ class Pandora(callbacks.Plugin):
 
         returns song album
         """
-        irc.reply('not yet implemented')
+        irc.reply('todo')
 
     # get song info
     def songinfo(self, irc, msg, args):
@@ -405,7 +418,7 @@ class Pandora(callbacks.Plugin):
 
         returns title, artist, and album
         """
-        irc.reply(self.getLast())
+        irc.reply('todo')
 
 
 
