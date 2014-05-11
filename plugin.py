@@ -41,16 +41,19 @@ import re
 # this is included in plugins/Pandora
 from nbstreamreader import NonBlockingStreamReader as NBSR
 
-# pandora subprocess
-
 
 class Pandora(callbacks.Plugin):
     """plays Pandora locally
         """
+    # initialize plugin
     def __init__(self, irc):
         self.__parent = super(Pandora, self)
         self.__parent.__init__(irc)
+        
+        # pianobar subprocess
         self.p = Popen('pianobar', stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        
+        # non-blocking stream reader
         self.nbsr = NBSR(self.p.stdout)
 
     # this prevents pianobar from running after unload
@@ -67,7 +70,13 @@ class Pandora(callbacks.Plugin):
                 break
         return output
 
-    # all the usual commands for pianobar
+    ### Pianobar control
+    # if there is a pending query when a song ends, the next song
+    # will not start until the query has been answered
+    # to dismiss a query without action, give it a newline
+
+    # input: + 
+    # expect: (i) Loving song... Ok.
     def love(self, irc, msg, args):
         """takes no arguments
 
@@ -76,6 +85,8 @@ class Pandora(callbacks.Plugin):
         self.p.stdin.write('+')
         irc.reply('loving song...')
 
+    # input: -
+    # expect: (i) Banning song... Ok.
     def ban(self, irc, msg, args):
         """takes no arguments
 
@@ -84,46 +95,91 @@ class Pandora(callbacks.Plugin):
         self.p.stdin.write('-')
         irc.reply('banning song')
 
+    # input: a
+    # expect: [?] Add artist or title to station:
+    # input: <artist or title>
+    # expect: (i) Searching... Ok.
+    # 0) <artist>
+    # 1) <artist>
+    # [?] Select artist:
+    # input: <number>
+    # expect: (i) Adding music to station... Ok.
     def addmusic(self, irc, msg, args):
         """takes no arguments
 
-        add music to station
+        adds music to current station
         """
         self.p.stdin.write('a')
         irc.reply('todo')
 
+    # input: c
+    # expect: [?] Create station from artist or title:
+    # input: <artist or title>
+    # expect: (i) Searching... Ok.
+    # 0) <artist>
+    # 1) <artist>
+    # [?] Select artist:
+    # input: <number>
+    # expect: Creating station... Ok.
     def create(self, irc, msg, args):
         """takes no arguments
 
-        create new station
+        creates new station, but does not switch to it
         """
         self.p.stdin.write('c')
         irc.reply('todo')
 
+    # input: d
+    # expect: [?] Really delete "<station>"? [yN]
+    # input: y
+    # expect: (i) Deleting station... Ok.
+    # Playback stops pending station selection
     def delete(self, irc, msg, args):
         """takes no arguments
 
-        delete current station
+        deletes current station
         """
         self.p.stdin.write('d')
         irc.reply('todo')
 
+    # input: e
+    # expect: (i) Receiving explanation... Ok.
+    # (i) We're playing this track because ... (2-4 lines)
     def explain(self, irc, msg, args):
         """takes no arguments
 
-        explain why current song is playing
+        explains why current song is playing
         """
         self.p.stdin.write('e')
         irc.reply('todo')
-
+    
+    # input: g
+    # expect: (i) Receiving genre stations... Ok.
+    # 0) <category>
+    # 1) ... (about 30 lines)
+    # [?] Select category:
+    # input: <number>
+    # expect: 0) <genre>
+    # 1) ... (fewer lines)
+    # [?] Select genre:
+    # input: <number>
+    # expect: (i) Adding genre station "<genre>"... Ok.
     def addgenre(self, irc, msg, args):
         """takes no arguments
 
-        add genre station
+        adds genre station, but does not switch to it
         """
         self.p.stdin.write('g')
         irc.reply('todo')
 
+    # input: h
+    # expect: 0) <artist> - <title>
+    # 1) <artist> - <title>
+    # 2) ...
+    # [?] Select song:
+    # input: <number>
+    # expect: [?] What to do with this song?
+    # (I assume we can love / ban / explain from history)
     def history(self, irc, msg, args):
         """takes no arguments
 
@@ -132,6 +188,9 @@ class Pandora(callbacks.Plugin):
         self.p.stdin.write('h')
         irc.reply('todo')
 
+    # input: i
+    # expect: |> Station "<station>" (<station id>)
+    # "<title>" by "<artist>" on "<album>"
     def info(self, irc, msg, args):
         """takes no arguments
 
@@ -140,6 +199,8 @@ class Pandora(callbacks.Plugin):
         self.p.stdin.write('i')
         irc.reply('todo')
 
+    # input: n
+    # no response, next song plays
     def skip(self, irc, msg, args):
         """takes no arguments
 
@@ -148,6 +209,8 @@ class Pandora(callbacks.Plugin):
         self.p.stdin.write('n')
         irc.reply('skipping...')
 
+    # input: p
+    # no response, music pauses / unpauses
     def pause(self, irc, msg, args):
         """takes no arguments
 
@@ -155,6 +218,9 @@ class Pandora(callbacks.Plugin):
         """
         self.p.stdin.write('p')
 
+    # input: q
+    # pianobar closes
+    # we don't want this to happen, unless the plugin is unloaded
     def quit(self, irc, msg, args):
         """takes no arguments
 
@@ -162,6 +228,10 @@ class Pandora(callbacks.Plugin):
         """
         irc.reply('You can\'t be serious')
 
+    # input: r
+    # expect: [?] New name:
+    # input: <name>
+    # expect: Renaming station... Ok.
     def rename(self, irc, msg, args):
         """takes no arguments
 
@@ -170,6 +240,16 @@ class Pandora(callbacks.Plugin):
         self.p.stdin.write('r')
         irc.reply('todo')
 
+    # input: s
+    # expect: 0) <station>
+    # 1) <station>
+    # 2) <station>
+    # (etc)
+    # [?] Select station:
+    # input: <number>
+    # expect: |> Station "<station>" (<station id>)
+    # Receiving new playlist... Ok.
+    # selected station plays
     def station(self, irc, msg, args, cmd):
         """<list> or <integer>
 
@@ -197,6 +277,9 @@ class Pandora(callbacks.Plugin):
             irc.reply('selected ' + cmd)
     station = wrap(station, ['text'])
 
+    # input: t
+    # expect: (i) Putting song on shelf... Ok.
+    # will not play again for one month
     def tired(self, irc, msg, args):
         """takes no arguments
 
@@ -205,6 +288,9 @@ class Pandora(callbacks.Plugin):
         self.p.stdin.write('t')
         irc.reply('shelving...')
 
+    # input: u
+    # expect: 0) <next song>
+    # 1) <song after next>
     def upcoming(self, irc, msg, args):
         """takes no arguments
 
@@ -213,6 +299,15 @@ class Pandora(callbacks.Plugin):
         self.p.stdin.write('u')
         irc.reply('todo')
 
+    # input: x
+    # expect: 0) <station>
+    # 1) <station>
+    # 2) ...
+    # [?] Toggle quickmix for station:
+    # this only works when we are on the quickmix station!
+    # selection repeats until we give it \n
+    # if we are not on a quickmix station, it replies with
+    # /!\ Not a QuickMix station
     def quickmix(self, irc, msg, args):
         """takes no arguments
 
@@ -221,6 +316,10 @@ class Pandora(callbacks.Plugin):
         self.p.stdin.write('x')
         irc.reply('todo')
 
+    # input: b
+    # expect: [?] Bookmark [s]ong or [a]rtist?
+    # input: s
+    # expect: (i) Bookmarking song... Ok.
     def bookmark(self, irc, msg, args):
         """takes no arguments
 
@@ -229,6 +328,8 @@ class Pandora(callbacks.Plugin):
         self.p.stdin.write('b')
         irc.reply('bookmarked')
 
+    # input: )
+    # no response, volume increases slightly (1/50?)
     def volup(self, irc, msg, args):
         """takes no arguments
 
@@ -236,6 +337,8 @@ class Pandora(callbacks.Plugin):
         """
         self.p.stdin.write(')')
 
+    # input: (
+    # no response, volume decreases slightly (1/50?)
     def voldown(self, irc, msg, args):
         """takes no arguments
 
@@ -243,6 +346,15 @@ class Pandora(callbacks.Plugin):
         """
         self.p.stdin.write('(')
 
+    # input: =
+    # expect: (i) Fetching station info... Ok.
+    # [?] Delete [a]rtist/[s]ong seeds or [f]eedback?
+    # input: s
+    # expect: 0) <station seed>
+    # 1) ...
+    # [?] Select song:
+    # input: 0
+    # expect: (i) Deleting artist seed... Ok.
     def removeseed(self, irc, msg, args):
         """takes no arguments
 
@@ -251,6 +363,10 @@ class Pandora(callbacks.Plugin):
         self.p.stdin.write('=')
         irc.reply(self.getLast())
 
+    # input: v
+    # expect: [?] Create station from [s]ong or [a]rtist?
+    # input: s
+    # expect: (i) Creating station... Ok.
     def newfromsong(self, irc, msg, args):
         """takes no arguments
 
@@ -258,18 +374,8 @@ class Pandora(callbacks.Plugin):
         """
         self.p.stdin.write('v')
         irc.reply(self.getLast())
-
-    def select(self, irc, msg, args, cmd):
-        """integer
-
-        use to select options from a list
-        """
-        if 0 <= cmd < 100:
-            self.p.stdin.write(str(cmd))
-            irc.reply('selected option ' + str(cmd))
-        else:
-            irc.reply('value out of range')
-    select = wrap(select, ['int'])
+    
+    # parse info command and return only song title
     def title(self, irc, msg, args):
         """takes no arguments
 
@@ -277,6 +383,7 @@ class Pandora(callbacks.Plugin):
         """
         irc.reply('not yet implemented')
 
+    # parse info command and return only artist name
     def artist(self, irc, msg, args):
         """takes no arguments
 
@@ -284,6 +391,7 @@ class Pandora(callbacks.Plugin):
         """
         irc.reply('not yet implemented')
 
+    # parse info command and return only album name
     def album(self, irc, msg, args):
         """takes no arguments
 
@@ -291,6 +399,7 @@ class Pandora(callbacks.Plugin):
         """
         irc.reply('not yet implemented')
 
+    # get song info
     def songinfo(self, irc, msg, args):
         """takes no arguments
 
