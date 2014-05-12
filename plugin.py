@@ -34,6 +34,7 @@ import supybot.plugins as plugins
 import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
 
+import subprocess
 from subprocess import Popen, PIPE
 from time import sleep
 import re
@@ -60,15 +61,67 @@ class Djbot(callbacks.Plugin):
     def die(self):
         self.p.terminate()
 
-    # gets the most recent line of output
-    def getLast(self):
+    # get recent output, formatted (somewhat) nicely
+    def getOutput(self):
         temp = ''
+        output = ''
         while True:
-            output = temp
+            output += temp.expandtabs(0).replace('\x1b[2K',
+                '').replace('\n', '') + ' '
             temp = self.nbsr.readline(0.1)
             if not temp:
                 break
         return output
+
+    # checks text for unwanted characters
+    def isSafe(self, text):
+        
+        # allowed ascii values (SPACE, ?, ,, ., A-Z, a-z, 0-9)
+        allowed = ([32, 44, 46, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 
+            63, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78,
+            79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 97, 98, 99,
+            100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111,
+            112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122])
+        # check if all characters are allowed (zero tolerance)
+        for i in text:
+            if not ord(i) in allowed:
+                return False
+        return True
+
+    # speak text using shell wrapper
+    def say(self, irc, msg, args, text):
+        """text
+
+        pauses music, speaks given text, resumes music
+        """
+        if isSafe(text):
+
+            # speak text
+            subprocess.call(['say.sh', text])
+    say = wrap(say, ['text'])
+    
+    # stop song announcements (driven by eventcmd)
+    def mute(self, irc, msg, args):
+        """takes no arguments
+
+        causes djbot not to announce songs
+        """
+
+        subprocess.call(['touch', '/home/djbot/.config/pianobar/mute'])
+        irc.reply('song announce off')
+    mute = wrap(mute)
+
+    # start song announcements (driven by eventcmd)
+    def unmute(self, irc, msg, args):
+        """takes no arguments
+
+        causes djbot to announce songs
+        """
+
+        subprocess.call(['rm', '-f', '/home/djbot/.config/pianobar/mute'])
+        irc.reply('song announce on')
+    unmute = wrap(unmute)
+
 
     ### Pianobar control
     # if there is a pending query when a song ends, the next song
@@ -261,22 +314,9 @@ class Djbot(callbacks.Plugin):
         integer selects corresponding station
         """
         if cmd == "list":
-            self.getLast()
-
-            self.p.stdin.write('s' + "\n")
-            sleep(0.1)
-            # get response from command
-            temp = ''
-            output = ''
-            # there must be a better way to filter this
-            while True:
-                output += temp.expandtabs(0).replace('\x1b[2K',
-                    '').replace('\n', '').replace(' q ', 
-                    '').replace(' Q ', '') + ' '
-                temp = self.nbsr.readline(0.1)
-                if not temp:
-                    break
-            irc.reply(str(output))
+            self.getOutput() # clear output buffer
+            self.p.stdout.write('s\n') # select station, but cancel
+            self.getOutput() # get station list
         elif (0 <= int(cmd) < 100):
             self.p.stdin.write('s' + cmd + '\n')
             irc.reply('selected ' + cmd)
