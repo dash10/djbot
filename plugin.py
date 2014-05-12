@@ -315,7 +315,7 @@ class Djbot(callbacks.Plugin):
         """
         if cmd == "list":
             self.getOutput() # clear output buffer
-            self.p.stdout.write('s\n') # select station, but cancel
+            self.p.stin.write('s\n') # select station, but cancel
             self.getOutput() # get station list
         elif (0 <= int(cmd) < 100):
             self.p.stdin.write('s' + cmd + '\n')
