@@ -47,7 +47,7 @@ __author__ = supybot.Author('dash')
 __contributors__ = {}
 
 # This is a url where the most recent plugin package can be downloaded.
-__url__ = 'https://github.com/dash10/djbot' # 'http://supybot.com/Members/yourname/Pandora/download'
+__url__ = 'https://github.com/dash10/djbot' 
 
 from . import config
 from . import plugin

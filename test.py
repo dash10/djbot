@@ -30,8 +30,8 @@
 
 from supybot.test import *
 
-class PandoraTestCase(PluginTestCase):
-    plugins = ('Pandora',)
+class DjbotTestCase(PluginTestCase):
+    plugins = ('Djbot',)
 
 
 

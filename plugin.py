@@ -38,16 +38,16 @@ from subprocess import Popen, PIPE
 from time import sleep
 import re
 
-# this is included in plugins/Pandora
+# this is included in plugins/Djbot
 from nbstreamreader import NonBlockingStreamReader as NBSR
 
 
-class Pandora(callbacks.Plugin):
+class Djbot(callbacks.Plugin):
     """plays Pandora locally
         """
     # initialize plugin
     def __init__(self, irc):
-        self.__parent = super(Pandora, self)
+        self.__parent = super(Djbot, self)
         self.__parent.__init__(irc)
         
         # pianobar subprocess
@@ -422,7 +422,7 @@ class Pandora(callbacks.Plugin):
 
 
 
-Class = Pandora
+Class = Djbot
 
 
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
