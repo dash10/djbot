@@ -94,7 +94,7 @@ class Djbot(callbacks.Plugin):
 
         pauses music, speaks given text, resumes music
         """
-        if isSafe(text):
+        if self.isSafe(text):
 
             # speak text
             subprocess.call(['say.sh', text])
@@ -240,8 +240,8 @@ class Djbot(callbacks.Plugin):
 
         return recently played songs
         """
-        self.p.stdin.write('h')
-        irc.reply('todo')
+        self.p.stdin.write('h\n')
+        irc.reply(self.getOutput())
 
     # input: i
     # expect: |> Station "<station>" (<station id>)
@@ -252,7 +252,7 @@ class Djbot(callbacks.Plugin):
         returns title, artist, album, and station
         """
         self.p.stdin.write('i')
-        irc.reply('todo')
+        irc.reply(self.getOutput())
 
     # input: n
     # no response, next song plays
@@ -316,7 +316,7 @@ class Djbot(callbacks.Plugin):
         if cmd == "list":
             self.getOutput() # clear output buffer
             self.p.stdin.write('s\n') # select station, but cancel
-            self.getOutput() # get station list
+            irc.reply(self.getOutput()) # get station list
         elif (0 <= int(cmd) < 100):
             self.p.stdin.write('s' + cmd + '\n')
             irc.reply('selected ' + cmd)
