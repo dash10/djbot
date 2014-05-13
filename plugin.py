@@ -39,7 +39,7 @@ from subprocess import Popen, PIPE
 from time import sleep
 import re
 
-# this is included in plugins/Djbot
+# this is included in plugins/Djbot/nonblockingstreamreader.py
 from nbstreamreader import NonBlockingStreamReader as NBSR
 
 
@@ -65,13 +65,17 @@ class Djbot(callbacks.Plugin):
     def getOutput(self):
         temp = ''
         output = ''
-        while True:
+        while True:	# clean up output and format for irc
             output += temp.expandtabs(0).replace('\x1b[2K',
                 '').replace('\n', '') + ' '
             temp = self.nbsr.readline(0.1)
             if not temp:
                 break
         return output
+
+    # clears output buffer so we don't get detritus
+    def clearOutput(self):
+	self.getOutput()
 
     # checks text for unwanted characters
     def isSafe(self, text):
@@ -89,7 +93,7 @@ class Djbot(callbacks.Plugin):
         return True
 
     # speak text using shell wrapper
-    def say(self, irc, msg, args, text):
+    def speak(self, irc, msg, args, text):
         """text
 
         pauses music, speaks given text, resumes music
@@ -98,10 +102,10 @@ class Djbot(callbacks.Plugin):
 
             # speak text
             subprocess.call(['say.sh', text])
-    say = wrap(say, ['text'])
+    speak = wrap(speak, ['text'])
     
     # stop song announcements (driven by eventcmd)
-    def mute(self, irc, msg, args):
+    def noannounce(self, irc, msg, args):
         """takes no arguments
 
         causes djbot not to announce songs
@@ -109,10 +113,10 @@ class Djbot(callbacks.Plugin):
 
         subprocess.call(['touch', '/home/djbot/.config/pianobar/mute'])
         irc.reply('song announce off')
-    mute = wrap(mute)
+    noanounce = wrap(noannounce)
 
     # start song announcements (driven by eventcmd)
-    def unmute(self, irc, msg, args):
+    def announce(self, irc, msg, args):
         """takes no arguments
 
         causes djbot to announce songs
@@ -120,7 +124,7 @@ class Djbot(callbacks.Plugin):
 
         subprocess.call(['rm', '-f', '/home/djbot/.config/pianobar/mute'])
         irc.reply('song announce on')
-    unmute = wrap(unmute)
+    announce = wrap(announce)
 
 
     ### Pianobar control
@@ -205,8 +209,9 @@ class Djbot(callbacks.Plugin):
 
         explains why current song is playing
         """
+	self.getOutput()
         self.p.stdin.write('e')
-        irc.reply('todo')
+        irc.reply(self.getOutput())
     
     # input: g
     # expect: (i) Receiving genre stations... Ok.
@@ -240,6 +245,7 @@ class Djbot(callbacks.Plugin):
 
         return recently played songs
         """
+	self.getOutput()
         self.p.stdin.write('h\n')
         irc.reply(self.getOutput())
 
@@ -249,10 +255,11 @@ class Djbot(callbacks.Plugin):
     def info(self, irc, msg, args):
         """takes no arguments
 
-        returns title, artist, album, and station
+        returns title, artist, and album
         """
-        self.p.stdin.write('i')
-        irc.reply(self.getOutput())
+        self.clearOutput()
+	self.p.stdin.write('i')
+        irc.reply(self.getOutput().replace(' |>  ', ''))
 
     # input: n
     # no response, next song plays
@@ -314,9 +321,10 @@ class Djbot(callbacks.Plugin):
         integer selects corresponding station
         """
         if cmd == "list":
-            self.getOutput() # clear output buffer
+            self.clearOutput()
             self.p.stdin.write('s\n') # select station, but cancel
-            irc.reply(self.getOutput()) # get station list
+            irc.reply(self.getOutput().replace(' q  ', '')
+		.replace('  Q  ', ' ')) # get station list
         elif (0 <= int(cmd) < 100):
             self.p.stdin.write('s' + cmd + '\n')
             irc.reply('selected ' + cmd)
@@ -342,8 +350,9 @@ class Djbot(callbacks.Plugin):
 
         returns upcoming songs
         """
+        self.clearOutput()
         self.p.stdin.write('u')
-        irc.reply('todo')
+        irc.reply(self.getOutput())
 
     # input: x
     # expect: 0) <station>
@@ -354,13 +363,24 @@ class Djbot(callbacks.Plugin):
     # selection repeats until we give it \n
     # if we are not on a quickmix station, it replies with
     # /!\ Not a QuickMix station
-    def quickmix(self, irc, msg, args):
-        """takes no arguments
+    def quickmix(self, irc, msg, args, cmd):
+        """<list> or <integer>
 
-        select quickmix station
+        toggle quickmix stations
         """
-        self.p.stdin.write('x')
-        irc.reply('todo')
+        if cmd == 'list':
+	    self.clearOutput()
+            self.p.stdin.write('x')
+	    output = self.getOutput()
+	    if 'Not a QuickMix station' in output:
+	        irc.reply('you must be listening to the QuickMix station first')
+            else:
+                irc.reply(output)
+        elif 0 <= int(cmd) < 100:
+		self.clearOutput()
+		self.p.stdin.write('x' + cmd)
+		irc.reply(self.getOutput())
+    quickmix = wrap(quickmix, ['text'])
 
     # input: b
     # expect: [?] Bookmark [s]ong or [a]rtist?
@@ -386,7 +406,7 @@ class Djbot(callbacks.Plugin):
 
         increase the volume
         """
-        self.p.stdin.write(')')
+        subprocess.call(['amixer', '-c0', 'set', 'PCM', '10dB+'])
     volup = wrap(volup)
 
     # input: (
@@ -396,7 +416,7 @@ class Djbot(callbacks.Plugin):
 
         decrease the volume
         """
-        self.p.stdin.write('(')
+        subprocess.call(['amixer', '-c0', 'set', 'PCM', '10dB-'])
     voldown = wrap(voldown)
 
     # input: =
@@ -413,7 +433,7 @@ class Djbot(callbacks.Plugin):
 
         remove seed from station
         """
-        self.p.stdin.write('=')
+        #self.p.stdin.write('=')
         irc.reply('todo')
 
     # input: v
@@ -425,7 +445,7 @@ class Djbot(callbacks.Plugin):
 
         new station from song
         """
-        self.p.stdin.write('v')
+        #self.p.stdin.write('v')
         irc.reply('todo')
     
     # parse info command and return only song title
