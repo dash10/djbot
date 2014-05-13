@@ -68,7 +68,7 @@ class Djbot(callbacks.Plugin):
         while True:	# clean up output and format for irc
             output += temp.expandtabs(0).replace('\x1b[2K',
                 '').replace('\n', '') + ' '
-            temp = self.nbsr.readline(0.1)
+            temp = self.nbsr.readline(0.2) #sometimes it takes time
             if not temp:
                 break
         return output
