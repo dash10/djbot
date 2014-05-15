@@ -51,11 +51,36 @@ class Djbot(callbacks.Plugin):
         self.__parent = super(Djbot, self)
         self.__parent.__init__(irc)
         
+	# don't initialize pianobar and streamreader yet
+
+    # start pianobar
+    def play(self, irc, msg, args):
+	""" takes no arguments
+
+	loads pandora and starts music
+	"""
+
         # pianobar subprocess
         self.p = Popen('pianobar', stdin=PIPE, stdout=PIPE, stderr=PIPE)
         
         # non-blocking stream reader
         self.nbsr = NBSR(self.p.stdout)
+	
+	irc.reply('playing...')
+    play = wrap(play)
+
+    # stop pianobar
+    def stop(self, irc, msg, args):
+	""" takes no arguments
+
+	stops music and unloads pandora
+	"""
+
+	# kill pianobar subprocess
+	self.p.terminate()
+
+	irc.reply('stopping...')
+    stop = wrap(stop)
 
     # this prevents pianobar from running after unload
     def die(self):
