@@ -79,5 +79,7 @@ Clone into Djbot directory, in your bot's plugins directory.
 
 Ensure that Pianobar is set up using default controls, and make sure it autoplays when started.
 
-If you are running this on Raspbian you will likely need to compile Pianobar 2013.05.19
+Speech commands are designed to use Cepstral's Swift engine, it should be trivial to change this for Festival or others.
+
+Note: When compiling Pianobar on Raspbian I get missing libav/buffersink.h error with the recent version, use version 2013.05.19 instead.
 
