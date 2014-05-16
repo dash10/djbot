@@ -1,6 +1,7 @@
 from threading import Thread
 from Queue import Queue, Empty
 
+
 class NonBlockingStreamReader:
 
         def __init__(self, stream):
@@ -17,10 +18,12 @@ class NonBlockingStreamReader:
                         Collect lines from 'stream' and put the in 'queue'
                         '''
 
+			# filter time remaining
                         while True:
                                 line = stream.readline()
                                 if line:
-                                        queue.put(line)
+					if line.find('#') == -1:
+                                        	queue.put(line)
                                 else:
 					break
 
