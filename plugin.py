@@ -50,7 +50,7 @@ class Djbot(callbacks.Plugin):
     def __init__(self, irc):
         self.__parent = super(Djbot, self)
         self.__parent.__init__(irc)
-        
+        self.isPlaying = False
 	# don't initialize pianobar and streamreader yet
 
     # start pianobar
@@ -60,13 +60,17 @@ class Djbot(callbacks.Plugin):
 	loads pandora and starts music
 	"""
 
-        # pianobar subprocess
-        self.p = Popen('pianobar', stdin=PIPE, stdout=PIPE, stderr=PIPE)
-        
-        # non-blocking stream reader
-        self.nbsr = NBSR(self.p.stdout)
-	
-	irc.reply('playing...')
+	if not self.isPlaying:
+
+	    # pianobar subprocess
+	    self.p = Popen('pianobar', stdin=PIPE, stdout=PIPE, stderr=PIPE)
+	    
+	    # non-blocking stream reader
+	    self.nbsr = NBSR(self.p.stdout)
+	    self.isPlaying = True
+	    irc.reply('playing...')
+	else:
+	    irc.reply('already playing')
     play = wrap(play)
 
     # stop pianobar
@@ -75,16 +79,37 @@ class Djbot(callbacks.Plugin):
 
 	stops music and unloads pandora
 	"""
+	if self.isPlaying:
+	    # kill pianobar subprocess
+	    self.p.terminate()
+            self.isPlaying = False
 
-	# kill pianobar subprocess
-	self.p.terminate()
-
-	irc.reply('stopping...')
+	    irc.reply('stopping...')
+	else:
+	    irc.reply('not playing')
     stop = wrap(stop)
 
     # this prevents pianobar from running after unload
     def die(self):
         self.p.terminate()
+
+    # increase system volume
+    def volup(self, irc, msg, args):
+        """takes no arguments
+
+        increase the volume 5db
+        """
+        subprocess.call(['amixer', '-c0', 'set', 'PCM', '5dB+'])
+    volup = wrap(volup)
+
+    # decrease system volume
+    def voldown(self, irc, msg, args):
+        """takes no arguments
+
+        decrease the volume 5db
+        """
+        subprocess.call(['amixer', '-c0', 'set', 'PCM', '5dB-'])
+    voldown = wrap(voldown)
 
     # get recent output, formatted (somewhat) nicely
     def getOutput(self):
@@ -93,7 +118,7 @@ class Djbot(callbacks.Plugin):
         while True:	# clean up output and format for irc
             output += temp.expandtabs(0).replace('\x1b[2K',
                 '').replace('\n', '') + ' '
-            temp = self.nbsr.readline(0.2) #sometimes it takes time
+            temp = self.nbsr.readline(0.3) #sometimes it takes time
             if not temp:
                 break
         return output
@@ -130,7 +155,7 @@ class Djbot(callbacks.Plugin):
     speak = wrap(speak, ['text'])
     
     # stop song announcements (driven by eventcmd)
-    def noannounce(self, irc, msg, args):
+    def nosongannounce(self, irc, msg, args):
         """takes no arguments
 
         causes djbot not to announce songs
@@ -138,10 +163,10 @@ class Djbot(callbacks.Plugin):
 
         subprocess.call(['touch', '/home/djbot/.config/pianobar/mute'])
         irc.reply('song announce off')
-    noanounce = wrap(noannounce)
+    nosonganounce = wrap(nosongannounce)
 
     # start song announcements (driven by eventcmd)
-    def announce(self, irc, msg, args):
+    def songannounce(self, irc, msg, args):
         """takes no arguments
 
         causes djbot to announce songs
@@ -149,7 +174,7 @@ class Djbot(callbacks.Plugin):
 
         subprocess.call(['rm', '-f', '/home/djbot/.config/pianobar/mute'])
         irc.reply('song announce on')
-    announce = wrap(announce)
+    songannounce = wrap(songannounce)
 
 
     ### Pianobar control
@@ -167,6 +192,18 @@ class Djbot(callbacks.Plugin):
         self.p.stdin.write('+')
         irc.reply('loving song...')
     love = wrap(love)
+
+
+    # input: -
+    # expect: (i) Banning song... Ok.
+    def hate(self, irc, msg, args):
+        """takes no arguments
+
+        hates currently playing song
+        """
+        self.p.stdin.write('-')
+        irc.reply('SUCH HATE!')
+    hate = wrap(hate)
 
     # input: -
     # expect: (i) Banning song... Ok.
@@ -424,25 +461,6 @@ class Djbot(callbacks.Plugin):
         irc.reply('Bookmarked ' + option)
     bookmark = wrap(bookmark, ['text'])
 
-    # input: )
-    # no response, volume increases slightly (1/50?)
-    def volup(self, irc, msg, args):
-        """takes no arguments
-
-        increase the volume
-        """
-        subprocess.call(['amixer', '-c0', 'set', 'PCM', '10dB+'])
-    volup = wrap(volup)
-
-    # input: (
-    # no response, volume decreases slightly (1/50?)
-    def voldown(self, irc, msg, args):
-        """takes no arguments
-
-        decrease the volume
-        """
-        subprocess.call(['amixer', '-c0', 'set', 'PCM', '10dB-'])
-    voldown = wrap(voldown)
 
     # input: =
     # expect: (i) Fetching station info... Ok.
@@ -510,6 +528,5 @@ class Djbot(callbacks.Plugin):
 Class = Djbot
 
 
-# vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
-
+# vim: set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
