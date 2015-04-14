@@ -13,7 +13,7 @@ Assuming fresh install of Raspbian:
     
     sudo apt-get update
     sudo apt-get install pianobar bc
-    # configure pianobar appropriately
+    configure pianobar appropriately
 
     ** NOTE ** pianobar in repos may still be broken, if so install from source. 
         I know version 2013.05.19 works, unsure of more recent versions.
