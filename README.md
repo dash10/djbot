@@ -1,9 +1,9 @@
 Supybot plugin to control Pianobar via IRC
 
 ### IMPORTANT ###
-This is still a work in progress!
+This is still a work in progress, please be patient.
 
-Several of the commands below are unimplemented, or do not yet work correctly.
+Several of the commands below are not yet implemented.
 
 ### Useage ###
 Pianobar will not be loaded until it is given the play command.

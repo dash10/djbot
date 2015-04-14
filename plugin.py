@@ -34,10 +34,12 @@ import supybot.plugins as plugins
 import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
 
-import subprocess
+import subprocess, re, string
 from subprocess import Popen, PIPE
 from time import sleep
-import re
+
+SWIFT = '/home/pi/djbot/plugins/djbot/say.sh'
+MUTE = '/home/pi/.config/pianobar/mute'
 
 # this is included in plugins/Djbot/nonblockingstreamreader.py
 from nbstreamreader import NonBlockingStreamReader as NBSR
@@ -80,6 +82,8 @@ class Djbot(callbacks.Plugin):
 	stops music and unloads pandora
 	"""
 	if self.isPlaying:
+            # exit pianobar
+            self.p.stdin.write('q')
 	    # kill pianobar subprocess
 	    self.p.terminate()
             self.isPlaying = False
@@ -97,7 +101,7 @@ class Djbot(callbacks.Plugin):
     def volup(self, irc, msg, args):
         """takes no arguments
 
-        increase the volume 5db
+        increase the volume 5%
         """
         subprocess.call(['amixer', '-c0', 'set', 'PCM', '5dB+'])
     volup = wrap(volup)
@@ -117,7 +121,7 @@ class Djbot(callbacks.Plugin):
         output = ''
         while True:	# clean up output and format for irc
             output += temp.expandtabs(0).replace('\x1b[2K',
-                '').replace('\n', '') + ' '
+                '').replace('\n', ' ') + ' '
             temp = self.nbsr.readline(0.3) #sometimes it takes time
             if not temp:
                 break
@@ -130,15 +134,10 @@ class Djbot(callbacks.Plugin):
     # checks text for unwanted characters
     def isSafe(self, text):
         
-        # allowed ascii values (SPACE, ?, ,, ., A-Z, a-z, 0-9)
-        allowed = ([32, 44, 46, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 
-            63, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78,
-            79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 97, 98, 99,
-            100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111,
-            112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122])
         # check if all characters are allowed (zero tolerance)
+	allowed = string.letters + string.digits + ' ?,.'
         for i in text:
-            if not ord(i) in allowed:
+            if not i in allowed:
                 return False
         return True
 
@@ -151,7 +150,7 @@ class Djbot(callbacks.Plugin):
         if self.isSafe(text):
 
             # speak text
-            subprocess.call(['say.sh', text])
+            subprocess.call([SWIFT, text])
     speak = wrap(speak, ['text'])
     
     # stop song announcements (driven by eventcmd)
@@ -161,7 +160,7 @@ class Djbot(callbacks.Plugin):
         causes djbot not to announce songs
         """
 
-        subprocess.call(['touch', '/home/djbot/.config/pianobar/mute'])
+        subprocess.call(['touch', MUTE])
         irc.reply('song announce off')
     nosonganounce = wrap(nosongannounce)
 
@@ -172,7 +171,7 @@ class Djbot(callbacks.Plugin):
         causes djbot to announce songs
         """
 
-        subprocess.call(['rm', '-f', '/home/djbot/.config/pianobar/mute'])
+        subprocess.call(['rm', '-f', MUTE])
         irc.reply('song announce on')
     songannounce = wrap(songannounce)
 
@@ -230,7 +229,7 @@ class Djbot(callbacks.Plugin):
 
         adds music to current station
         """
-        self.p.stdin.write('a')
+        #self.p.stdin.write('a')
         irc.reply('todo')
 
     # input: c
@@ -247,7 +246,7 @@ class Djbot(callbacks.Plugin):
 
         creates new station, but does not switch to it
         """
-        self.p.stdin.write('c')
+        #self.p.stdin.write('c')
         irc.reply('todo')
 
     # input: d
@@ -291,7 +290,7 @@ class Djbot(callbacks.Plugin):
 
         adds genre station, but does not switch to it
         """
-        self.p.stdin.write('g')
+        #self.p.stdin.write('g')
         irc.reply('todo')
 
     # input: h
@@ -334,26 +333,38 @@ class Djbot(callbacks.Plugin):
         irc.reply('skipping...')
     skip = wrap(skip)
 
-    # input: p
-    # no response, music pauses / unpauses
+    # input: S
+    # no response, music pauses playback
     def pause(self, irc, msg, args):
         """takes no arguments
 
-        pause or unpause playback
+        pause playback (use resume to continue)
         """
-        self.p.stdin.write('p')
+        self.p.stdin.write('S')
+        irc.reply('paused. use resume to continue')
     pause = wrap(pause)
+
+    # input: P
+    # no response, music resumes playback
+    def resume(self, irc, msg, args):
+        """takes no arguments
+
+        resume playback after pause
+        """
+        self.p.stdin.write('P')
+        irc.reply('resuming playback...')
+    resume = wrap(resume)
 
     # input: q
     # pianobar closes
     # we don't want this to happen without unloading the plugin
-    def quit(self, irc, msg, args):
-        """takes no arguments
-
-        exit pianobar
-        """
-        irc.reply('Please unload the plugin instead')
-
+#    def quit(self, irc, msg, args):
+#        """takes no arguments
+#
+#        exit pianobar
+#        """
+#        irc.reply('Please unload the plugin instead')
+#
     # input: r
     # expect: [?] New name:
     # input: <name>
@@ -363,7 +374,8 @@ class Djbot(callbacks.Plugin):
 
         rename station
         """
-        self.p.stdin.write('r' + newname)
+        #if isSafe(newname):
+        #	self.p.stdin.write('r' + newname)
         irc.reply('todo')
     rename = wrap(rename, ['text'])
 
@@ -387,7 +399,7 @@ class Djbot(callbacks.Plugin):
             self.p.stdin.write('s\n') # select station, but cancel
             irc.reply(self.getOutput().replace(' q  ', '')
 		.replace('  Q  ', ' ')) # get station list
-        elif (0 <= int(cmd) < 100):
+        elif isSafe(cmd) and (0 <= int(cmd) < 100):
             self.p.stdin.write('s' + cmd + '\n')
             irc.reply('selected ' + cmd)
     station = wrap(station, ['text'])
@@ -438,7 +450,7 @@ class Djbot(callbacks.Plugin):
 	        irc.reply('you must be listening to the QuickMix station first')
             else:
                 irc.reply(output)
-        elif 0 <= int(cmd) < 100:
+        elif isSafe(cmd) and 0 <= int(cmd) < 100:
 		self.clearOutput()
 		self.p.stdin.write('x' + cmd)
 		irc.reply(self.getOutput())
