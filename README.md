@@ -5,6 +5,41 @@ This is still a work in progress, please be patient.
 
 Several of the commands below are not yet implemented.
 
+
+### Setup ###
+Assuming fresh install of Raspbian:
+
+1. Set up pianobar and bc
+    
+    sudo apt-get update
+    sudo apt-get install pianobar bc
+    # configure pianobar appropriately
+
+    ** NOTE ** pianobar in repos may still be broken, if so install from source. 
+        I know version 2013.05.19 works, unsure of more recent versions.
+
+2. Set up Limnoria (Supybot fork)
+
+    git clone https://github.com/ProgVal/Limnoria
+    cd Limnoria
+    python setup.py build
+    sudo python setup.py install
+    supybot-wizard
+
+3. Set up djbot
+
+    cd <bot dir>/plugins
+    git clone https://github.com/dash10/djbot
+    
+4. Set up TTS
+    
+    ** todo **
+    currently I use Cepstral Swift, in my opinion it was worth the money. I don't
+    know if they will still provide the Raspberry Pi version of swift.
+    I eventually will set this up with something else / free, not a priority at this point.
+
+
+
 ### Useage ###
 Pianobar will not be loaded until it is given the play command.
 
@@ -73,13 +108,3 @@ station - select station
 tired - do not play current song again for a month
 
 upcoming - show upcoming tracks
-
-### Setup ###
-Clone into Djbot directory, in your bot's plugins directory.
-
-Ensure that Pianobar is set up using default controls, and make sure it autoplays when started.
-
-Speech commands are designed to use Cepstral's Swift engine, it should be trivial to change this for Festival or others.
-
-Note: When compiling Pianobar on Raspbian I get missing libav/buffersink.h error with the recent version, use version 2013.05.19 instead.
-
