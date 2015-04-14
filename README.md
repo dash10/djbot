@@ -16,7 +16,7 @@ Assuming fresh install of Raspbian:
     configure pianobar appropriately
 
     ** NOTE ** pianobar in repos may still be broken, if so install from source. 
-        I know version 2013.05.19 works, unsure of more recent versions.
+        2013.05.19 worked last I checked, sunsure of more recent versions.
 
 2. Set up Limnoria (Supybot fork)
 
