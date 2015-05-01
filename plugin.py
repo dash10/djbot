@@ -38,8 +38,8 @@ import subprocess, re, string
 from subprocess import Popen, PIPE
 from time import sleep
 
-SWIFT = '/home/pi/djbot/plugins/djbot/say.sh'
-MUTE = '/home/pi/.config/pianobar/mute'
+SWIFT = '/home/djbot/djbot/plugins/djbot/say.sh'
+MUTE = '/home/djbot/.config/pianobar/mute'
 
 # this is included in plugins/Djbot/nonblockingstreamreader.py
 from nbstreamreader import NonBlockingStreamReader as NBSR
@@ -65,7 +65,8 @@ class Djbot(callbacks.Plugin):
 	if not self.isPlaying:
 
 	    # pianobar subprocess
-	    self.p = Popen('pianobar', stdin=PIPE, stdout=PIPE, stderr=PIPE)
+	    self.p = Popen('pianobar', stdin=PIPE, stdout=PIPE, stderr=PIPE,
+                shell=True)
 	    
 	    # non-blocking stream reader
 	    self.nbsr = NBSR(self.p.stdout)
@@ -85,6 +86,7 @@ class Djbot(callbacks.Plugin):
             # exit pianobar
             self.p.stdin.write('q')
 	    # kill pianobar subprocess
+            sleep(1)
 	    self.p.terminate()
             self.isPlaying = False
 
@@ -95,7 +97,11 @@ class Djbot(callbacks.Plugin):
 
     # this prevents pianobar from running after unload
     def die(self):
+        if self.isPlaying:
+            self.p.stdin.write('q')
+            sleep(1)
         self.p.terminate()
+        self.isPlaying = False
 
     # increase system volume
     def volup(self, irc, msg, args):
@@ -399,7 +405,7 @@ class Djbot(callbacks.Plugin):
             self.p.stdin.write('s\n') # select station, but cancel
             irc.reply(self.getOutput().replace(' q  ', '')
 		.replace('  Q  ', ' ')) # get station list
-        elif isSafe(cmd) and (0 <= int(cmd) < 100):
+        elif self.isSafe(cmd) and (0 <= int(cmd) < 100):
             self.p.stdin.write('s' + cmd + '\n')
             irc.reply('selected ' + cmd)
     station = wrap(station, ['text'])
