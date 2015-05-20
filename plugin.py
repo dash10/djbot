@@ -253,7 +253,8 @@ class Djbot(callbacks.Plugin):
         creates new station, but does not switch to it
         """
         #self.p.stdin.write('c')
-        irc.reply('todo')
+        #irc.reply(self.getOutput().replace(' |>  ', ''))
+        irc.reply('not yet implemented')
 
     # input: d
     # expect: [?] Really delete "<station>"? [yN]
